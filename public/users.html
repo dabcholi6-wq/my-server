@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مدیریت کاربران</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #1a1a2e; color: white; padding: 20px; }
+    .header { background: #16213e; padding: 20px; border-radius: 10px; margin-bottom: 30px; }
+    .header h1 { color: #e94560; }
+    .btn { background: #e94560; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; margin: 3px; }
+    .btn-green { background: #00b894; }
+    .btn-red { background: #d63031; }
+    .card { background: #16213e; padding: 20px; border-radius: 10px; margin: 15px 0; display: flex; justify-content: space-between; align-items: center; }
+    .card h3 { margin-bottom: 5px; }
+    .card p { color: #aaa; font-size: 14px; }
+    .active { color: #00b894; }
+    .inactive { color: #d63031; }
+    a { color: #e94560; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>👥 مدیریت کاربران</h1>
+    <a href="/dashboard.html">🏠 بازگشت</a>
+  </div>
+
+  <div id="userList"></div>
+
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) window.location.href = "/login.html";
+
+    async function loadUsers() {
+      const res = await fetch("/api/users", {
+        headers: { "Authorization": "Bearer " + token }
+      });
+      const users = await res.json();
+      
+      document.getElementById("userList").innerHTML = users.map(u => `
+        <div class="card">
+          <div>
+            <h3>${u.name || "بدون نام"}</h3>
+            <p>📧 ${u.email || "---"}</p>
+            <p>📱 ${u.phone || "---"}</p>
+            <p>وضعیت: <span class="${u.isActive ? 'active' : 'inactive'}">${u.isActive ? 'فعال' : 'غیرفعال'}</span></p>
+          </div>
+          <div>
+            <button class="btn ${u.isActive ? 'btn-red' : 'btn-green'}" onclick="toggleUser('${u._id}')">
+              ${u.isActive ? '🚫 غیرفعال' : '✅ فعال'}
+            </button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function toggleUser(id) {
+      await fetch("/api/users/" + id + "/toggle", {
+        method: "PUT",
+        headers: { "Authorization": "Bearer " + token }
+      });
+      loadUsers();
+    }
+
+    loadUsers();
+  </script>
+</body>
+</html>
