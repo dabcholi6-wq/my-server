@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>داشبورد مدیریت</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #1a1a2e; color: white; padding: 20px; }
+    .header { background: #16213e; padding: 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    .header h1 { color: #e94560; font-size: 20px; }
+    .header button { background: #e94560; color: white; border: none; padding: 8px 20px; border-radius: 5px; cursor: pointer; }
+    .menu { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 30px; }
+    .menu a { background: #16213e; color: white; padding: 12px 25px; border-radius: 8px; text-decoration: none; }
+    .menu a:hover { background: #0f3460; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+    .stat-card { background: #16213e; padding: 25px; border-radius: 10px; text-align: center; }
+    .stat-card h3 { color: #e94560; font-size: 30px; margin-bottom: 10px; }
+    .stat-card p { color: #aaa; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🎬 پنل مدیریت</h1>
+    <button onclick="logout()">خروج</button>
+  </div>
+  
+  <div class="menu">
+    <a href="#">📦 پوشه‌ها</a>
+    <a href="#">🎥 ویدیوها</a>
+    <a href="#">👥 کاربران</a>
+    <a href="#">🔑 کدهای دسترسی</a>
+  </div>
+  
+  <div class="stats">
+    <div class="stat-card">
+      <h3 id="userCount">...</h3>
+      <p>کاربران</p>
+    </div>
+    <div class="stat-card">
+      <h3 id="bundleCount">...</h3>
+      <p>پوشه‌ها</p>
+    </div>
+    <div class="stat-card">
+      <h3 id="videoCount">...</h3>
+      <p>ویدیوها</p>
+    </div>
+    <div class="stat-card">
+      <h3 id="codeCount">...</h3>
+      <p>کدهای فعال</p>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) window.location.href = "/login.html";
+    
+    function logout() {
+      localStorage.removeItem("token");
+      window.location.href = "/login.html";
+    }
+  </script>
+</body>
+</html>
