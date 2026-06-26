@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مدیریت پوشه‌ها</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #1a1a2e; color: white; padding: 20px; }
+    .header { background: #16213e; padding: 20px; border-radius: 10px; margin-bottom: 30px; }
+    .header h1 { color: #e94560; }
+    .btn { background: #e94560; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 16px; margin: 5px; }
+    .btn:hover { background: #c73c54; }
+    .btn-green { background: #00b894; }
+    .card { background: #16213e; padding: 20px; border-radius: 10px; margin: 15px 0; display: flex; justify-content: space-between; align-items: center; }
+    .card h3 { margin-bottom: 5px; }
+    .card p { color: #aaa; font-size: 14px; }
+    .code { color: #e94560; font-size: 14px; margin-top: 5px; }
+    input, textarea { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #0f3460; border-radius: 8px; background: #0f3460; color: white; font-size: 14px; }
+    .modal { background: #16213e; padding: 25px; border-radius: 10px; max-width: 500px; margin: 30px auto; }
+    .modal h2 { color: #e94560; margin-bottom: 20px; }
+    a { color: #e94560; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📦 مدیریت پوشه‌ها</h1>
+    <a href="/dashboard.html">🏠 بازگشت به داشبورد</a>
+  </div>
+
+  <div class="modal">
+    <h2>ساخت پوشه جدید</h2>
+    <input type="text" id="title" placeholder="عنوان پوشه">
+    <textarea id="description" placeholder="توضیحات" rows="3"></textarea>
+    <button class="btn btn-green" onclick="createBundle()">➕ ساخت پوشه</button>
+  </div>
+
+  <div id="bundleList"></div>
+
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) window.location.href = "/login.html";
+
+    async function loadBundles() {
+      const res = await fetch("/api/bundles", {
+        headers: { "Authorization": "Bearer " + token }
+      });
+      const bundles = await res.json();
+      
+      const list = document.getElementById("bundleList");
+      list.innerHTML = bundles.map(b => `
+        <div class="card">
+          <div>
+            <h3>${b.title}</h3>
+            <p>${b.description || "بدون توضیحات"}</p>
+            <p class="code">🔑 کد پوشه: ${b.code}</p>
+          </div>
+          <div>
+            <button class="btn" onclick="deleteBundle('${b._id}')">🗑️ حذف</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function createBundle() {
+      const title = document.getElementById("title").value;
+      const description = document.getElementById("description").value;
+      
+      if (!title) return alert("عنوان رو وارد کن!");
+      
+      await fetch("/api/bundles", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ title, description })
+      });
+      
+      document.getElementById("title").value = "";
+      document.getElementById("description").value = "";
+      loadBundles();
+    }
+
+    async function deleteBundle(id) {
+      if (!confirm("مطمئنی می‌خوای این پوشه رو حذف کنی؟")) return;
+      
+      await fetch("/api/bundles/" + id, {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + token }
+      });
+      
+      loadBundles();
+    }
+
+    loadBundles();
+  </script>
+</body>
+  </html>
