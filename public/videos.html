@@ -3,124 +3,67 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>مدیریت ویدیوها</title>
+  <title>آپلود ویدیو</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; background: #1a1a2e; color: white; padding: 20px; }
-    .header { background: #16213e; padding: 20px; border-radius: 10px; margin-bottom: 30px; }
-    .header h1 { color: #e94560; }
-    .btn { background: #e94560; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; margin: 5px; }
-    .btn:hover { background: #c73c54; }
-    .card { background: #16213e; padding: 20px; border-radius: 10px; margin: 15px 0; display: flex; justify-content: space-between; align-items: center; }
-    select, input { padding: 10px; margin: 8px 0; border: 1px solid #0f3460; border-radius: 8px; background: #0f3460; color: white; font-size: 14px; width: 100%; }
-    .modal { background: #16213e; padding: 25px; border-radius: 10px; max-width: 500px; margin: 30px auto; }
-    .modal h2 { color: #e94560; margin-bottom: 20px; }
-    a { color: #e94560; text-decoration: none; }
+    body { background: #1a1a2e; color: white; font-family: Arial; padding: 20px; }
+    input, select, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; }
+    button { background: #e94560; color: white; cursor: pointer; }
+    select, input[type=file] { background: #0f3460; color: white; border: 1px solid #0f3460; }
+    .msg { margin-top: 10px; text-align: center; }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>🎥 مدیریت ویدیوها</h1>
-    <a href="/dashboard.html">🏠 بازگشت</a>
-  </div>
-
-  <div class="modal">
-    <h2>آپلود ویدیو</h2>
-    <select id="bundleSelect">
-      <option value="">انتخاب پوشه...</option>
-    </select>
-    <input type="text" id="videoTitle" placeholder="عنوان ویدیو">
-    <input type="number" id="videoOrder" placeholder="شماره ترتیب" value="1">
-    <input type="file" id="videoFile" accept="video/*">
-    <button class="btn" onclick="uploadVideo()">📤 آپلود ویدیو</button>
-  </div>
-
-  <h2>📋 لیست ویدیوها</h2>
-  <select id="filterBundle" onchange="loadVideos()">
-    <option value="">همه پوشه‌ها</option>
-  </select>
-  <div id="videoList"></div>
+  <h2>🎥 آپلود ویدیو</h2>
+  <select id="bundleSelect"><option value="">انتخاب پوشه...</option></select>
+  <input type="text" id="videoTitle" placeholder="عنوان ویدیو">
+  <input type="number" id="videoOrder" placeholder="ترتیب" value="1">
+  <input type="file" id="videoFile" accept="video/mp4">
+  <button onclick="uploadVideo()">📤 آپلود</button>
+  <p class="msg" id="msg"></p>
 
   <script>
     const token = localStorage.getItem("token");
-    if (!token) window.location.href = "/login.html";
+    if(!token) window.location.href = "/login.html";
 
-    async function loadBundles() {
-      const res = await fetch("/api/bundles", {
-        headers: { "Authorization": "Bearer " + token }
+    fetch("/api/bundles", { headers: { "Authorization": "Bearer " + token } })
+      .then(r => r.json())
+      .then(b => {
+        document.getElementById("bundleSelect").innerHTML = '<option value="">انتخاب پوشه...</option>' + b.map(x => `<option value="${x._id}">${x.title}</option>`).join("");
       });
-      const bundles = await res.json();
-      
-      const selects = [document.getElementById("bundleSelect"), document.getElementById("filterBundle")];
-      selects.forEach(sel => {
-        sel.innerHTML = '<option value="">انتخاب پوشه...</option>' +
-          bundles.map(b => `<option value="${b._id}">${b.title}</option>`).join("");
-      });
-    }
-
-    async function loadVideos() {
-      const bundleId = document.getElementById("filterBundle").value;
-      let url = bundleId ? `/api/bundles/${bundleId}/videos` : "/api/videos";
-      
-      const res = await fetch(url, {
-        headers: { "Authorization": "Bearer " + token }
-      });
-      const videos = await res.json();
-      
-      document.getElementById("videoList").innerHTML = videos.map(v => `
-        <div class="card">
-          <div>
-            <h3>#${v.order} - ${v.title}</h3>
-            <p>📁 ${v.bundleId?.title || "بدون پوشه"}</p>
-            <p>🎬 ${v.filename}</p>
-          </div>
-          <div>
-            <button class="btn" onclick="deleteVideo('${v._id}')">🗑️ حذف</button>
-          </div>
-        </div>
-      `).join("");
-    }
 
     async function uploadVideo() {
       const bundleId = document.getElementById("bundleSelect").value;
       const title = document.getElementById("videoTitle").value;
       const order = document.getElementById("videoOrder").value;
       const file = document.getElementById("videoFile").files[0];
+      const msg = document.getElementById("msg");
       
-      if (!bundleId || !title || !file) return alert("همه فیلدها رو پر کن!");
+      if(!bundleId || !title || !file) { msg.textContent = "❌ همه فیلدها را پر کنید"; return; }
       
-      const formData = new FormData();
-      formData.append("video", file);
-      formData.append("bundleId", bundleId);
-      formData.append("title", title);
-      formData.append("order", order);
+      msg.textContent = "⏳ در حال آپلود...";
       
-      const res = await fetch("/api/videos", {
-        method: "POST",
-        headers: { "Authorization": "Bearer " + token },
-        body: formData
-      });
+      const fd = new FormData();
+      fd.append("video", file);
+      fd.append("bundleId", bundleId);
+      fd.append("title", title);
+      fd.append("order", order);
       
-      const data = await res.json();
-      if (data.video) {
-        alert("ویدیو آپلود شد!");
-        loadVideos();
-      } else {
-        alert("خطا در آپلود!");
+      try {
+        const res = await fetch("/api/videos", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token },
+          body: fd
+        });
+        const data = await res.json();
+        if(data.video) {
+          msg.textContent = "✅ آپلود شد!";
+        } else {
+          msg.textContent = "❌ " + (data.error || "خطا");
+        }
+      } catch(e) {
+        msg.textContent = "❌ خطا: " + e.message;
       }
     }
-
-    async function deleteVideo(id) {
-      if (!confirm("حذف بشه؟")) return;
-      await fetch("/api/videos/" + id, {
-        method: "DELETE",
-        headers: { "Authorization": "Bearer " + token }
-      });
-      loadVideos();
-    }
-
-    loadBundles();
-    loadVideos();
   </script>
 </body>
-  </html>
+</html>
