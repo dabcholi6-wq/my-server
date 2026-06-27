@@ -1,0 +1,18 @@
+async function loadVideos(bundleId) {
+  try {
+    const res = await fetch("/api/bundles/" + bundleId + "/videos", {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    const videos = await res.json();
+    const html = videos.map(v => `
+      <div class="video-card">
+        <h3>#${v.order} - ${v.title}</h3>
+        <video controls controlsList="nodownload" disablePictureInPicture oncontextmenu="return false" playsinline>
+          <source src="/stream/${v._id}" type="video/mp4">
+        </video>
+      </div>
+    `).join("");
+    document.getElementById("videoList").innerHTML = html;
+    document.getElementById("videosSection").style.display = "block";
+  } catch(e) {}
+}
