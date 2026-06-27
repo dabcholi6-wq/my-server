@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Golden org</title>
   <link rel="manifest" href="/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js');
@@ -25,6 +26,10 @@
     .success { color: #00b894; }
     .btn-green { background: #00b894; }
     .btn-blue { background: #2196F3; }
+    a { color: #2196F3; text-decoration: none; }
+    video { width: 100%; border-radius: 8px; margin-top: 10px; }
+    video::-webkit-media-controls-download-button { display: none !important; }
+    video::-webkit-media-controls-fullscreen-button { display: none !important; }
   </style>
 </head>
 <body>
@@ -33,17 +38,17 @@
     <p>پلتفرم آموزش ارگ</p>
   </div>
 
-  <!-- بخش ورود -->
+  <!-- ورود -->
   <div class="section" id="loginSection">
     <h2>🔐 ورود</h2>
     <input type="email" id="loginEmail" placeholder="ایمیل">
     <input type="password" id="loginPassword" placeholder="رمز عبور">
     <button onclick="loginUser()">ورود</button>
     <p class="status" id="loginStatus"></p>
-    <p style="text-align:center;margin-top:10px;">حساب نداری؟ <a href="#" onclick="showRegister()" style="color:#2196F3;">ثبت‌نام</a></p>
+    <p style="text-align:center;margin-top:10px;">حساب نداری؟ <a href="#" onclick="showRegister()">ثبت‌نام</a></p>
   </div>
 
-  <!-- بخش ثبت‌نام -->
+  <!-- ثبت‌نام -->
   <div class="section" id="registerSection" style="display:none;">
     <h2>📝 ثبت‌نام</h2>
     <input type="text" id="regName" placeholder="نام">
@@ -52,30 +57,30 @@
     <input type="password" id="regPassword" placeholder="رمز عبور">
     <button onclick="registerUser()">ثبت‌نام</button>
     <p class="status" id="regStatus"></p>
-    <p style="text-align:center;margin-top:10px;">حساب داری؟ <a href="#" onclick="showLogin()" style="color:#2196F3;">ورود</a></p>
+    <p style="text-align:center;margin-top:10px;">حساب داری؟ <a href="#" onclick="showLogin()">ورود</a></p>
   </div>
 
-  <!-- بخش فعال‌سازی کد -->
+  <!-- کد دسترسی -->
   <div class="section" id="codeSection" style="display:none;">
-    <h2>🔑 فعال‌سازی کد دسترسی</h2>
+    <h2>🔑 فعال‌سازی کد</h2>
     <input type="text" id="accessCode" placeholder="کد دسترسی را وارد کنید">
     <button onclick="activateCode()">فعال‌سازی</button>
     <p class="status" id="codeStatus"></p>
   </div>
 
-  <!-- بخش پوشه‌های من -->
+  <!-- پوشه‌های من -->
   <div class="section" id="bundlesSection" style="display:none;">
     <h2>📦 دوره‌های من</h2>
     <div id="myBundles"></div>
   </div>
 
-  <!-- بخش ویدیوها -->
+  <!-- ویدیوها -->
   <div class="section" id="videosSection" style="display:none;">
     <h2>🎥 ویدیوها</h2>
     <div id="videoList"></div>
   </div>
 
-  <button onclick="logout()" style="background:#d63031;margin-top:20px;" id="logoutBtn" style="display:none;">خروج</button>
+  <button onclick="logout()" style="background:#d63031;margin-top:20px;width:100%;" id="logoutBtn" style="display:none;">خروج</button>
 
   <script>
     let token = localStorage.getItem("token");
@@ -84,7 +89,6 @@
       document.getElementById("loginSection").style.display = "none";
       document.getElementById("registerSection").style.display = "block";
     }
-
     function showLogin() {
       document.getElementById("registerSection").style.display = "none";
       document.getElementById("loginSection").style.display = "block";
@@ -94,9 +98,7 @@
       const email = document.getElementById("loginEmail").value;
       const password = document.getElementById("loginPassword").value;
       const status = document.getElementById("loginStatus");
-      
       if(!email || !password) { status.textContent = "فیلدها را پر کنید"; return; }
-      
       try {
         const res = await fetch("/api/users/login", {
           method: "POST",
@@ -113,9 +115,7 @@
         } else {
           status.textContent = "❌ " + (data.error || "خطا در ورود");
         }
-      } catch(e) {
-        status.textContent = "❌ خطا در اتصال";
-      }
+      } catch(e) { status.textContent = "❌ خطا در اتصال"; }
     }
 
     async function registerUser() {
@@ -124,9 +124,7 @@
       const phone = document.getElementById("regPhone").value;
       const password = document.getElementById("regPassword").value;
       const status = document.getElementById("regStatus");
-      
       if(!name || !email || !password) { status.textContent = "فیلدهای ضروری را پر کنید"; return; }
-      
       try {
         const res = await fetch("/api/users/register", {
           method: "POST",
@@ -143,15 +141,13 @@
         } else {
           status.textContent = "❌ " + (data.error || "خطا در ثبت‌نام");
         }
-      } catch(e) {
-        status.textContent = "❌ خطا در اتصال";
-      }
+      } catch(e) { status.textContent = "❌ خطا در اتصال"; }
     }
 
     async function activateCode() {
       const code = document.getElementById("accessCode").value;
       const status = document.getElementById("codeStatus");
-      
+      if(!code) { status.textContent = "کد را وارد کنید"; return; }
       try {
         const res = await fetch("/api/activate-code", {
           method: "POST",
@@ -165,13 +161,13 @@
         if(data.message) {
           status.textContent = "✅ " + data.message;
           status.className = "status success";
+          document.getElementById("codeSection").style.display = "none";
           loadMyBundles();
+          document.getElementById("bundlesSection").style.display = "block";
         } else {
           status.textContent = "❌ " + (data.error || "کد نامعتبر");
         }
-      } catch(e) {
-        status.textContent = "❌ خطا در اتصال";
-      }
+      } catch(e) { status.textContent = "❌ خطا در اتصال"; }
     }
 
     async function loadMyBundles() {
@@ -184,10 +180,11 @@
           <div class="video-card">
             <h3>${b.title}</h3>
             <p>${b.description || ""}</p>
-            <button class="btn-blue" onclick="loadVideos('${b._id}')">مشاهده ویدیوها</button>
+            <button class="btn-blue" onclick="loadVideos('${b._id}')">🎥 مشاهده ویدیوها</button>
           </div>
         `).join("");
-        document.getElementById("myBundles").innerHTML = html || "<p>هنوز دوره‌ای فعال نشده</p>";
+        document.getElementById("myBundles").innerHTML = html || "<p>هنوز دوره‌ای فعال نشده. کد دسترسی را وارد کنید.</p>";
+        document.getElementById("bundlesSection").style.display = "block";
       } catch(e) {}
     }
 
@@ -200,8 +197,9 @@
         const html = videos.map(v => `
           <div class="video-card">
             <h3>#${v.order} - ${v.title}</h3>
-            <video controls style="width:100%;border-radius:8px;margin-top:10px;">
+            <video controls controlsList="nodownload" disablePictureInPicture oncontextmenu="return false" playsinline>
               <source src="/stream/${v._id}/master.m3u8" type="application/x-mpegURL">
+              مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
             </video>
           </div>
         `).join("");
@@ -214,7 +212,6 @@
       document.getElementById("loginSection").style.display = "none";
       document.getElementById("registerSection").style.display = "none";
       document.getElementById("codeSection").style.display = "block";
-      document.getElementById("bundlesSection").style.display = "block";
       document.getElementById("logoutBtn").style.display = "block";
       loadMyBundles();
     }
@@ -225,6 +222,7 @@
       location.reload();
     }
 
+    // چک خودکار لاگین
     if(token) showUserPanel();
   </script>
 </body>
