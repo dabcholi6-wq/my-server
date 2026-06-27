@@ -5,42 +5,65 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>آپلود ویدیو</title>
   <style>
-    body { background: #1a1a2e; color: white; font-family: Arial; padding: 20px; }
-    input, select, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; }
-    button { background: #e94560; color: white; cursor: pointer; }
-    select, input[type=file] { background: #0f3460; color: white; border: 1px solid #0f3460; }
-    .msg { margin-top: 10px; text-align: center; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #1a1a2e; color: white; padding: 20px; }
+    .header { background: #16213e; padding: 20px; border-radius: 10px; margin-bottom: 30px; }
+    .header h1 { color: #e94560; }
+    .btn { background: #e94560; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; margin: 5px; }
+    .card { background: #16213e; padding: 20px; border-radius: 10px; margin: 15px 0; }
+    select, input { padding: 10px; margin: 8px 0; border: 1px solid #0f3460; border-radius: 8px; background: #0f3460; color: white; font-size: 14px; width: 100%; }
+    a { color: #e94560; text-decoration: none; }
+    .progress-bar { width: 100%; background: #0f3460; border-radius: 10px; margin: 10px 0; height: 30px; overflow: hidden; display: none; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #e94560, #ff6b6b); width: 0%; transition: 0.3s; text-align: center; line-height: 30px; font-size: 14px; font-weight: bold; }
+    .modal { background: #16213e; padding: 25px; border-radius: 10px; max-width: 500px; margin: 30px auto; }
+    .modal h2 { color: #e94560; margin-bottom: 20px; }
   </style>
 </head>
 <body>
-  <h2>🎥 آپلود ویدیو</h2>
-  <select id="bundleSelect"><option value="">انتخاب پوشه...</option></select>
-  <input type="text" id="videoTitle" placeholder="عنوان ویدیو">
-  <input type="number" id="videoOrder" placeholder="ترتیب" value="1">
-  <input type="file" id="videoFile" accept="video/mp4">
-  <button onclick="uploadVideo()">📤 آپلود</button>
-  <p class="msg" id="msg"></p>
+  <div class="header">
+    <h1>🎥 مدیریت ویدیوها</h1>
+    <a href="/dashboard.html">🏠 بازگشت</a>
+  </div>
+
+  <div class="modal">
+    <h2>آپلود ویدیو جدید</h2>
+    <select id="bundleSelect"><option value="">انتخاب پوشه...</option></select>
+    <input type="text" id="videoTitle" placeholder="عنوان ویدیو">
+    <input type="number" id="videoOrder" placeholder="ترتیب" value="1">
+    <input type="file" id="videoFile" accept="video/mp4">
+    <button class="btn" onclick="uploadVideo()" style="width:100%;">📤 آپلود ویدیو</button>
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-fill" id="progressFill">0%</div>
+    </div>
+    <p id="msg" style="text-align:center;margin-top:10px;"></p>
+  </div>
+
+  <h2>📋 ویدیوهای آپلود شده</h2>
+  <select id="filterBundle" onchange="loadVideos()"><option value="">همه پوشه‌ها</option></select>
+  <div id="videoList"></div>
 
   <script>
     const token = localStorage.getItem("token");
-    if(!token) window.location.href = "/login.html";
+    if (!token) window.location.href = "/login.html";
 
     fetch("/api/bundles", { headers: { "Authorization": "Bearer " + token } })
       .then(r => r.json())
       .then(b => {
-        document.getElementById("bundleSelect").innerHTML = '<option value="">انتخاب پوشه...</option>' + b.map(x => `<option value="${x._id}">${x.title}</option>`).join("");
+        const html = '<option value="">انتخاب پوشه...</option>' + b.map(x => `<option value="${x._id}">${x.title}</option>`).join("");
+        document.getElementById("bundleSelect").innerHTML = html;
+        document.getElementById("filterBundle").innerHTML = html;
       });
 
-    async function uploadVideo() {
+    function uploadVideo() {
       const bundleId = document.getElementById("bundleSelect").value;
       const title = document.getElementById("videoTitle").value;
       const order = document.getElementById("videoOrder").value;
       const file = document.getElementById("videoFile").files[0];
       const msg = document.getElementById("msg");
+      const progressBar = document.getElementById("progressBar");
+      const progressFill = document.getElementById("progressFill");
       
       if(!bundleId || !title || !file) { msg.textContent = "❌ همه فیلدها را پر کنید"; return; }
-      
-      msg.textContent = "⏳ در حال آپلود...";
       
       const fd = new FormData();
       fd.append("video", file);
@@ -48,22 +71,71 @@
       fd.append("title", title);
       fd.append("order", order);
       
-      try {
-        const res = await fetch("/api/videos", {
-          method: "POST",
-          headers: { "Authorization": "Bearer " + token },
-          body: fd
-        });
-        const data = await res.json();
-        if(data.video) {
-          msg.textContent = "✅ آپلود شد!";
-        } else {
-          msg.textContent = "❌ " + (data.error || "خطا");
+      progressBar.style.display = "block";
+      progressFill.style.width = "0%";
+      progressFill.textContent = "0%";
+      msg.textContent = "";
+      
+      const xhr = new XMLHttpRequest();
+      
+      xhr.upload.onprogress = function(e) {
+        if(e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          progressFill.style.width = percent + "%";
+          progressFill.textContent = percent + "%";
         }
-      } catch(e) {
-        msg.textContent = "❌ خطا: " + e.message;
-      }
+      };
+      
+      xhr.onload = function() {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if(data.video) {
+            msg.textContent = "✅ ویدیو با موفقیت آپلود شد!";
+            msg.style.color = "#00b894";
+            loadVideos();
+          } else {
+            msg.textContent = "❌ " + (data.error || "خطا در آپلود");
+            msg.style.color = "#ff6b6b";
+          }
+        } catch(e) {
+          msg.textContent = "❌ خطا در پاسخ سرور";
+          msg.style.color = "#ff6b6b";
+        }
+        progressBar.style.display = "none";
+      };
+      
+      xhr.onerror = function() {
+        msg.textContent = "❌ خطا در اتصال";
+        msg.style.color = "#ff6b6b";
+        progressBar.style.display = "none";
+      };
+      
+      xhr.open("POST", "/api/videos");
+      xhr.setRequestHeader("Authorization", "Bearer " + token);
+      xhr.send(fd);
     }
+
+    async function loadVideos() {
+      const bundleId = document.getElementById("filterBundle").value;
+      const url = bundleId ? "/api/bundles/" + bundleId + "/videos" : "/api/videos";
+      const res = await fetch(url, { headers: { "Authorization": "Bearer " + token } });
+      const videos = await res.json();
+      document.getElementById("videoList").innerHTML = videos.map(v => `
+        <div class="card">
+          <h3>#${v.order} - ${v.title}</h3>
+          <p>📁 ${v.filename}</p>
+          <button class="btn" onclick="deleteVideo('${v._id}')">🗑️ حذف</button>
+        </div>
+      `).join("");
+    }
+
+    async function deleteVideo(id) {
+      if(!confirm("حذف شود؟")) return;
+      await fetch("/api/videos/" + id, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
+      loadVideos();
+    }
+
+    loadVideos();
   </script>
 </body>
 </html>
