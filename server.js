@@ -50,4 +50,8 @@ app.get("/sw.js", (req, res) => res.sendFile(path.join(__dirname, "public", "sw.
 app.get("/", (req, res) => res.send("OK"));
 
 const PORT = process.env.PORT || 8080;
+const uploadsDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  }
 app.listen(PORT, () => console.log("Port " + PORT));
