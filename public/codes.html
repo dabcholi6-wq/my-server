@@ -3,20 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>مدیریت کدهای دسترسی</title>
+  <title>کدهای دسترسی</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: Arial, sans-serif; background: #1a1a2e; color: white; padding: 20px; }
     .header { background: #16213e; padding: 20px; border-radius: 10px; margin-bottom: 30px; }
     .header h1 { color: #e94560; }
     .btn { background: #e94560; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 13px; margin: 3px; }
-    .btn:hover { background: #c73c54; }
+    .btn-red { background: #d63031; }
     .btn-green { background: #00b894; }
     .btn-yellow { background: #fdcb6e; color: #333; }
-    .btn-red { background: #d63031; }
     .card { background: #16213e; padding: 20px; border-radius: 10px; margin: 15px 0; }
-    .card h3 { color: #e94560; margin-bottom: 8px; }
-    .card p { color: #aaa; font-size: 13px; margin: 3px 0; }
     .code-box { background: #0f3460; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center; font-size: 22px; letter-spacing: 3px; color: #00b894; font-weight: bold; }
     .active { color: #00b894; }
     .inactive { color: #d63031; }
@@ -24,7 +21,6 @@
     .modal { background: #16213e; padding: 25px; border-radius: 10px; max-width: 500px; margin: 30px auto; }
     .modal h2 { color: #e94560; margin-bottom: 20px; }
     a { color: #e94560; text-decoration: none; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   </style>
 </head>
 <body>
@@ -35,15 +31,9 @@
 
   <div class="modal">
     <h2>ساخت کد جدید</h2>
-    <div class="grid">
-      <select id="bundleSelect">
-        <option value="">انتخاب پوشه...</option>
-      </select>
-      <select id="userSelect">
-        <option value="">انتخاب کاربر...</option>
-      </select>
-    </div>
-    <input type="date" id="expiresAt" placeholder="تاریخ انقضا (اختیاری)">
+    <select id="bundleSelect"><option value="">انتخاب پوشه...</option></select>
+    <select id="userSelect"><option value="">انتخاب کاربر...</option></select>
+    <input type="date" id="expiresAt">
     <button class="btn btn-green" onclick="createCode()">🔑 ساخت کد</button>
   </div>
 
@@ -53,6 +43,8 @@
   <script>
     const token = localStorage.getItem("token");
     if (!token) window.location.href = "/login.html";
+
+    loadData();
 
     async function loadData() {
       const [bundlesRes, usersRes, codesRes] = await Promise.all([
@@ -65,28 +57,19 @@
       const users = await usersRes.json();
       const codes = await codesRes.json();
       
-      document.getElementById("bundleSelect").innerHTML = 
-        '<option value="">انتخاب پوشه...</option>' +
-        bundles.map(b => `<option value="${b._id}">${b.title}</option>`).join("");
-      
-      document.getElementById("userSelect").innerHTML = 
-        '<option value="">انتخاب کاربر...</option>' +
-        users.map(u => `<option value="${u._id}">${u.name || u.phone || u.email}</option>`).join("");
+      document.getElementById("bundleSelect").innerHTML = '<option value="">انتخاب پوشه...</option>' + bundles.map(b => `<option value="${b._id}">${b.title}</option>`).join("");
+      document.getElementById("userSelect").innerHTML = '<option value="">انتخاب کاربر...</option>' + users.map(u => `<option value="${u._id}">${u.name || u.email}</option>`).join("");
       
       document.getElementById("codeList").innerHTML = codes.map(c => `
         <div class="card">
-          <h3>📦 ${c.bundleId?.title || "نامشخص"} ← 👤 ${c.userId?.name || c.userId?.phone || "نامشخص"}</h3>
-          <p>📧 ${c.userId?.email || ""} 📱 ${c.userId?.phone || ""}</p>
+          <h3>📦 ${c.bundleId?.title || "نامشخص"} ← 👤 ${c.userId?.name || c.userId?.email || "نامشخص"}</h3>
           <div class="code-box">${c.code}</div>
-          <p>وضعیت کد: <span class="${c.isActive ? 'active' : 'inactive'}">${c.isActive ? '✅ فعال' : '❌ غیرفعال'}</span></p>
-          <p>${c.isUsed ? '✅ استفاده شده در: ' + new Date(c.usedAt).toLocaleDateString("fa-IR") : '⏳ هنوز استفاده نشده'}</p>
-          ${c.expiresAt ? '<p>⏰ انقضا: ' + new Date(c.expiresAt).toLocaleDateString("fa-IR") + '</p>' : '<p>⏰ بدون انقضا</p>'}
-          <p>تاریخ ساخت: ${new Date(c.createdAt).toLocaleDateString("fa-IR")}</p>
-          <br>
+          <p>وضعیت: <span class="${c.isActive ? 'active' : 'inactive'}">${c.isActive ? '✅ فعال' : '❌ غیرفعال'}</span> | ${c.isUsed ? '✅ استفاده شده' : '⏳ استفاده نشده'}</p>
+          ${c.expiresAt ? '<p>⏰ انقضا: ' + new Date(c.expiresAt).toLocaleDateString("fa-IR") + '</p>' : ''}
           <button class="btn btn-yellow" onclick="toggleCode('${c._id}')">${c.isActive ? 'غیرفعال' : 'فعال'} کردن</button>
           <button class="btn btn-red" onclick="deleteCode('${c._id}')">🗑️ حذف</button>
         </div>
-      `).join("");
+      `).join("") || "<p>هیچ کدی ساخته نشده</p>";
     }
 
     async function createCode() {
@@ -94,22 +77,17 @@
       const userId = document.getElementById("userSelect").value;
       const expiresAt = document.getElementById("expiresAt").value;
       
-      if (!bundleId || !userId) return alert("پوشه و کاربر رو انتخاب کن!");
+      if(!bundleId || !userId) return alert("پوشه و کاربر را انتخاب کنید!");
       
       const res = await fetch("/api/access-codes", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + token
-        },
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
         body: JSON.stringify({ bundleId, userId, expiresAt: expiresAt || null })
       });
       
       const data = await res.json();
-      if (data.error) return alert(data.error);
-      
-      alert("✅ کد ساخته شد: " + data.code);
-      loadData();
+      if(data.code) { alert("✅ کد ساخته شد: " + data.code); loadData(); }
+      else { alert("❌ " + (data.error || "خطا")); }
     }
 
     async function toggleCode(id) {
@@ -121,15 +99,13 @@
     }
 
     async function deleteCode(id) {
-      if (!confirm("حذف بشه؟")) return;
+      if(!confirm("مطمئنی می‌خوای حذف کنی؟")) return;
       await fetch("/api/access-codes/" + id, {
         method: "DELETE",
         headers: { "Authorization": "Bearer " + token }
       });
       loadData();
     }
-
-    loadData();
   </script>
 </body>
-  </html>
+</html>
